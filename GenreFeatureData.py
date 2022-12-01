@@ -249,14 +249,10 @@ def test_accurracy():
     
     predictions=[]
     for i in range(len(test_data)):
-        neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco=get_neighbors(train_data, train_genre, test_data[i], 1)
+        neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco=get_neighbors(train_data, train_genre, test_data[i], 4)
         guess_genre=nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre)
         predictions.append(guess_genre)
     print(get_accuracy(test_genre, predictions))
     
 
-# if __name__ == "__main__":
-# main()
-
 test_accurracy()
-# print(test_X)
