@@ -7,6 +7,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+
+
 def menu():
     print("""----Music genre clasifier KNN---- 
 We have some example audio for you to try our genre guesser
@@ -207,7 +209,7 @@ def get_values(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, t
 
 
 def main():
-    exa= ["classical_music.mp3", "country_music.mp3", "disco_music.mp3", "hip-hop_music.mp3", "jazz_music.mp3", "metal_music.mp3", "pop_music.mp3", "reggae_music.mp3"]
+    exa= ["classical_music.wav", "country_music.wav", "disco_music.mp3", "hip-hop_music.mp3", "jazz_music.mp3", "metal_music.mp3", "pop_music.mp3", "reggae_music.mp3"]
     n = menu()
     k=20
     file = ["ExampleAudios/"+exa[n-1]]

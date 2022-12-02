@@ -236,13 +236,6 @@ def generate_data():
     split=0.7
     audiofiles, training_set, test_set = process_data(directory, split, genre_list)
     
-
-    #recorrer los test
-        #Hallar sus k vecinos
-        #Hallar la clase mas cercana
-        #Verificar si es correcto o no
-    #Mostrar % de accuracy
-    
     
 def test_accurracy():
     train_data, train_genre, test_data, test_genre = load_deserialize_data()
