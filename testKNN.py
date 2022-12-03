@@ -7,6 +7,9 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+import tkinter, shutil
+import tkinter.filedialog
+
 
 
 def menu():
@@ -20,6 +23,12 @@ We have some example audio for you to try our genre guesser
 6: metal_music.mp3
 7: pop_music.mp3
 8: reggae_music.mp3
+9: 2pac-Hit'em up (HipHop)
+10: Chopin - Nocturne op.9 No.2 (Classical)
+11: Olivia Rodrigo - drivers license (pop)
+12: ACDC - Highway to Hell
+13: I will survive-Gloria Gaynor
+14: Is this love bob marley
     """)
     n = int(input("Your choice:"))
     return n
@@ -207,11 +216,20 @@ def get_values(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, t
         
     return values
 
-
+def upload_audio():
+    try:
+        top = tkinter.Tk()
+        top.withdraw()  
+        file_name = tkinter.filedialog.askopenfilename(parent=top, title = "Select file")
+        shutil.copy(file_name, "./ExampleAudio/user_audio.mp3")
+        top.destroy()
+    except:
+        pass
+    
 def main():
-    exa= ["classical_music.wav", "country_music.wav", "disco_music.mp3", "hip-hop_music.mp3", "jazz_music.mp3", "metal_music.mp3", "pop_music.mp3", "reggae_music.mp3"]
+    k=5
+    exa= ["classical_music.wav", "country_music.wav", "disco_music.mp3", "hip-hop_music.mp3", "jazz_music.mp3", "metal_music.mp3", "pop_music.wav", "reggae_music.wav", "2pac-Hit'em up.mp3", "Chopin - Nocturne op.9 No.2.mp3", "Olivia Rodrigo - drivers license.mp3", "ACDC - Highway to Hell.mp3", "I will survive-Gloria Gaynor.mp3", "Is this love bob marley.mp3"]
     n = menu()
-    k=20
     file = ["ExampleAudios/"+exa[n-1]]
     data=extract_audio_features(file)
     train_data, train_genre, test_data, test_genre = load_deserialize_data()
