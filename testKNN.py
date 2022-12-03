@@ -1,18 +1,20 @@
 import librosa
-import math
-import os
-import re
-import random
 import numpy as np
 
 import matplotlib.pyplot as plt
-
-import tkinter, shutil
-import tkinter.filedialog
-
+from GenreFeatureData import load_deserialize_data
+from GenreFeatureData import get_neighbors
+from GenreFeatureData import nearest_class
+from GenreFeatureData import list_to_genre
 
 
 def menu():
+    """
+    Function that shows the user the example audios to try the model
+    
+    Returns:
+        number of the audio chosen
+    """
     print("""----Music genre clasifier KNN---- 
 We have some example audio for you to try our genre guesser
 1: classical_music.mp3
@@ -35,6 +37,17 @@ We have some example audio for you to try our genre guesser
     
  
 def extract_audio_features(list_of_audiofiles):
+    """
+    Function that given a list of audio files extracts it features using librosa library
+    
+    Args:
+        list_of_audiofiles: list of paths to audiofiles, list with no length restriction
+        
+    Returns:
+        data: 3-dimensional numpy matrix of size number of audiofiles x 128 x 33, stores the audio features
+        
+        
+    """
     data = np.zeros(
         (len(list_of_audiofiles), 128, 33), dtype=np.float64
     )
@@ -63,90 +76,24 @@ def extract_audio_features(list_of_audiofiles):
         )
 
     return data
-
-
-def load_deserialize_data():
-
-    train_X = np.load("DataFeatures/data_train.npy")
-    train_Y = np.load("DataFeatures/data_train_target.npy")
-
-    test_X = np.load("DataFeatures/data_test.npy")
-    test_Y = np.load("DataFeatures/data_test_target.npy")
-    
-    return train_X, train_Y, test_X, test_Y
-
-
-def get_neighbors(train_data, train_genre, test_data_ins, k):
-    distances_mfcc=[]
-    distances_sce=[]
-    distances_chroma=[]
-    distances_sco=[]
-    for i in range(len(train_data)):
-        train_mfcc=train_data[i][:][0:13]
-        train_sce=train_data[i][:][13:14]
-        train_chroma=train_data[i][:][14:26]
-        train_sco=train_data[i][:][26:33]
-        
-        test_mfcc=test_data_ins[:][0:13]
-        test_sce=test_data_ins[:][13:14]
-        test_chroma=test_data_ins[:][14:26]
-        test_sco=test_data_ins[:][26:33]
-        
-        
-        dist_mfcc = np.linalg.norm(train_mfcc - test_mfcc)
-        dist_sce = np.linalg.norm(train_sce - test_sce)
-        dist_chroma = np.linalg.norm(train_chroma - test_chroma)
-        dist_sco = np.linalg.norm(train_sco - test_sco)
-        
-        if len(distances_mfcc)<k:
-            distances_mfcc.append([i, dist_mfcc])
-        else:
-            for j in range(len(distances_mfcc)):
-                if dist_mfcc < distances_mfcc[j][1]:
-                    distances_mfcc[j]=[i, dist_mfcc]
-                    break
-        
-        if len(distances_sce)<k:
-            distances_sce.append([i, dist_sce])
-        else:
-            for j in range(len(distances_sce)):
-                if dist_sce < distances_sce[j][1]:
-                    distances_sce[j]=[i, dist_sce]
-                    break
-        
-        if len(distances_chroma)<k:
-            distances_chroma.append([i, dist_chroma])
-        else:
-            for j in range(len(distances_chroma)):
-                if dist_chroma < distances_chroma[j][1]:
-                    distances_chroma[j]=[i, dist_chroma]
-                    break
-                
-        if len(distances_sco)<k:
-            distances_sco.append([i, dist_sco])
-        else:
-            for j in range(len(distances_sco)):
-                if dist_sco < distances_sco[j][1]:
-                    distances_sco[j]=[i, dist_sco]
-                    break
-    return distances_mfcc, distances_sce, distances_chroma, distances_sco
                 
                 
-def list_to_genre(genre_binary):
-    genre_list = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
-    count=0
-    for i in genre_binary:
-        if i == 1:
-            break
-        else:
-            count+=1
-    genre = genre_list[count]
-    return genre
+def get_values(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre, k):
+    """
+    Functions that given the list of neighbors for each feature prepares the data to be graphed according to the proportions
     
-    
-def nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre):
-    genre_list = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
-    guess = []
+    Args:
+        neighbors_mfcc: list of size k x 2 (int x int), contains the k nearest neighbors according to mfcc and its distance 
+        neighbors_sce: list of size k x 2 (int x int), contains the k nearest neighbors according to spectral center and its distance 
+        neighbors_chroma: list of size k x 2 (int x int), contains the k nearest neighbors according to chroma and its distance 
+        neighbors_sco: list of size k x 2 (int x int), contains the k nearest neighbors according to spectral contrast and its distance 
+        train_genre: 2-dimensional numpy matrix of size: number of train audiofiles x 10, that stores the genre of each audio
+        k: integer, number of neighbors allowed
+    Returns:
+        values: list of 4 lists for each of the audio features (mfcc, sce, chroma, sco), each one contains 10 values
+                between 0 and 1 representing the proportion of the k neigbors found for that genre using that feature
+    """
+    values=[]
     for neighbors in [neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco]:
         genre = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         for x in range(len(neighbors)):
@@ -158,23 +105,23 @@ def nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco
                 else:
                     count+=1
             genre[count]=genre[count]+1
-        
         for i in range(10):
-            if genre[i]==max(genre):
-                guess.append(genre_list[i])
-    final_guess=[]
-    times=0
-    for i in genre_list:
-        if guess.count(i)>=times:
-            times = guess.count(i)
-    for i in genre_list:
-        if guess.count(i)>=times:
-            final_guess.append(i)
-            
-    return final_guess 
+            genre[i]=genre[i]/k
+        values.append(genre)
+        
+    return values
 
 
 def grafic_neighbors(values):
+    """
+    Function that graphs the proportion of neighbors for each feature using matplotlib
+    
+    Args:
+        values: list of 4 lists for each of the audio features (mfcc, sce, chroma, sco), each one contains 10 values
+                between 0 and 1 
+                
+        
+    """
     N = 10
     ind = np.arange(N) 
     width = 0.2
@@ -197,36 +144,12 @@ def grafic_neighbors(values):
     plt.show()
 
  
-def get_values(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre, k):
-    values=[]
-    for neighbors in [neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco]:
-        genre = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        for x in range(len(neighbors)):
-            neighbor_genre_list = train_genre[neighbors[x][0]]
-            count=0
-            for i in neighbor_genre_list:
-                if i == 1:
-                    break
-                else:
-                    count+=1
-            genre[count]=genre[count]+1
-        for i in range(10):
-            genre[i]=genre[i]/k
-        values.append(genre)
-        
-    return values
-
-def upload_audio():
-    try:
-        top = tkinter.Tk()
-        top.withdraw()  
-        file_name = tkinter.filedialog.askopenfilename(parent=top, title = "Select file")
-        shutil.copy(file_name, "./ExampleAudio/user_audio.mp3")
-        top.destroy()
-    except:
-        pass
-    
 def main():
+    """
+    Function that executes the menu and uses the model to show the user the obtained results
+          
+        
+    """
     k=5
     exa= ["classical_music.wav", "country_music.wav", "disco_music.mp3", "hip-hop_music.mp3", "jazz_music.mp3", "metal_music.mp3", "pop_music.wav", "reggae_music.wav", "2pac-Hit'em up.mp3", "Chopin - Nocturne op.9 No.2.mp3", "Olivia Rodrigo - drivers license.mp3", "ACDC - Highway to Hell.mp3", "I will survive-Gloria Gaynor.mp3", "Is this love bob marley.mp3"]
     n = menu()
@@ -237,7 +160,6 @@ def main():
     neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco=get_neighbors(train_data, train_genre, data[0], k)
     guess_genre=nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre)
     print(guess_genre)
-    # grafic_neighbors(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre)
     values=get_values(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre, k)
     grafic_neighbors(values)
 

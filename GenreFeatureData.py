@@ -7,7 +7,8 @@ import numpy as np
  
 def list_of_audiofiles(directory, split):
     """
-    Function that separates all the audiofiles into training and test data
+    Function that separates all the audiofiles in a directory into training and test data. It also writes the path for every audio in 
+    train.txt or test.txt
     
     Args:
         directory: Path of the GTZAN database
@@ -40,7 +41,18 @@ def list_of_audiofiles(directory, split):
     return audiofiles, training_set, test_set
 
             
-def extract_audio_features(list_of_audiofiles):
+def extract_dbaudio_features(list_of_audiofiles):
+    """
+    Function that given a list of audio files extracts it features using librosa library
+    
+    Args:
+        list_of_audiofiles: list of paths to audiofiles, list with no length restriction
+        
+    Returns:
+        data: 3-dimensional numpy matrix of size number of audiofiles x 128 x 33, stores the audio features
+        data_genre: numpy list for each audio file it stores its genre
+        
+    """
     data = np.zeros(
         (len(list_of_audiofiles), 128, 33), dtype=np.float64
     )
@@ -76,6 +88,18 @@ def extract_audio_features(list_of_audiofiles):
 
 
 def one_hot(Y_genre_strings, genre_list):
+    """
+    Function that given a genre string changes format to:[0, 1, 0, 0, 0, 0, 0, 0, 0, 0] 
+    where every possition is given by the genre list 
+    
+    Args:
+        Y_genre_string: List of music genres (strings) to change format
+        genre_list: List of  music genres of the new corresponding positions, usually :
+                    ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
+        
+    Returns:
+        List of lists: list of the new format for every genre in y_genre_strings
+    """
     y_one_hot = np.zeros((Y_genre_strings.shape[0], len(genre_list)))
     for i, genre_string in enumerate(Y_genre_strings):
         index = genre_list.index(genre_string)
@@ -84,10 +108,24 @@ def one_hot(Y_genre_strings, genre_list):
 
 
 def process_data(directory, split, genre_list):   
+    """
+    Function that calls list_of_audiofiles and  extract_dbaudio_features for each set (test and train)
+    This function stores the data in the following files: data_train.npy, data_train_target.npy, data_test.npy, data_test_target.npy.
+    Data file store audio features and data target file contains the expected genre.
+
+    Args:
+        directory: Path of the GTZAN database
+        split: float number between 0 and 1. Used to decide if an audio is training or test data
+        genre_list: list of strings of the genres in the database  usually :
+                    ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
+        
+    Returns:
+        List of all the audiofiles paths,  List of the training audiofiles paths, List of the test audiofiles paths
+    """
     audiofiles, training_set, test_set = list_of_audiofiles(directory, split)
 
     # Training set
-    train_X, train_Y = extract_audio_features(training_set)
+    train_X, train_Y = extract_dbaudio_features(training_set)
     with open("DataFeatures/data_train.npy", "wb") as f:
         np.save(f, train_X)
     with open("DataFeatures/data_train_target.npy", "wb") as f:
@@ -95,7 +133,7 @@ def process_data(directory, split, genre_list):
         np.save(f, train_Y)
 
     # Test set
-    test_X, test_Y = extract_audio_features(test_set)
+    test_X, test_Y = extract_dbaudio_features(test_set)
     with open("DataFeatures/data_test.npy", "wb") as f:
         np.save(f, test_X)
     with open("DataFeatures/data_test_target.npy", "wb") as f:
@@ -106,7 +144,17 @@ def process_data(directory, split, genre_list):
     
     
 def load_deserialize_data():
+    """
+    Function that loads the data in the files: data_train.npy, data_train_target.npy, data_test.npy, data_test_target.npy.
+    
+    Returns:
+        train_X: Data features of the training audios
+        train_Y: Music genre of each trainig audio 
+        test_X: Data features of the test audios
+        test_Y: Music genre of each test audio
 
+    """
+    
     train_X = np.load("DataFeatures/data_train.npy")
     train_Y = np.load("DataFeatures/data_train_target.npy")
 
@@ -116,15 +164,23 @@ def load_deserialize_data():
     return train_X, train_Y, test_X, test_Y
 
 
-def precompute_min_timeseries_len(audiofiles, timeseries_length_list):
-    for file in audiofiles:
-        print("Loading " + str(file))
-        y, sr = librosa.load(file)
-        timeseries_length_list.append(math.ceil(len(y) / 512))
-    return timeseries_length_list
-
-
 def get_neighbors(train_data, train_genre, test_data_ins, k):
+    """
+    Given all train data features and a specific test audio (features), this function finds its k 
+    more similar train audios for each of the 4 features
+    
+    Args:
+        train_data: 3-dimensional numpy matrix of size number of train audiofiles x 128 x 33, that stores the audio features
+        train_genre: 2-dimensional numpy matrix of size number of train audiofiles x 10, that stores the genre of each audio
+        test_data_ins: 2-dimensional numpy matrix of size 128 x 33, that stores the audio features
+        k: integer 
+        
+    Returns:
+        distances_mfcc: list of size k x 2 (int x int), contains the k nearest neighbors according to mfcc and its distance 
+        distances_sce: list of size k x 2 (int x int), contains the k nearest neighbors according to spectral center and its distance 
+        distances_chroma: list of size k x 2 (int x int), contains the k nearest neighbors according to chroma and its distance 
+        distances_sco: list of size k x 2 (int x int), contains the k nearest neighbors according to spectral contrast and its distance 
+    """
     distances_mfcc=[]
     distances_sce=[]
     distances_chroma=[]
@@ -181,6 +237,17 @@ def get_neighbors(train_data, train_genre, test_data_ins, k):
                 
                 
 def list_to_genre(genre_binary):
+    """
+    Function that changes a genre from binary list format to string
+    
+    Args:
+        genre_binary:list of 10 binary elements like this:[0, 1, 0, 0, 0, 0, 0, 0, 0, 0] where every possition is given by the genre list 
+                    ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"] and 1 represents a genre 
+                    
+    Returns:
+        genre: corresponding genre string
+    """
+    
     genre_list = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
     count=0
     for i in genre_binary:
@@ -193,6 +260,18 @@ def list_to_genre(genre_binary):
     
     
 def nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre):
+    """
+    Function that decides one or more genre for an specific test cased based on the nearest neighbors in each feature
+    
+    Args:
+        neighbors_mfcc: list of size k x 2 (int x int), contains the k nearest neighbors according to mfcc and its distance 
+        neighbors_sce: list of size k x 2 (int x int), contains the k nearest neighbors according to spectral center and its distance 
+        neighbors_chroma: list of size k x 2 (int x int), contains the k nearest neighbors according to chroma and its distance 
+        neighbors_sco: list of size k x 2 (int x int), contains the k nearest neighbors according to spectral contrast and its distance 
+        
+    Returns:
+        final_guess: list of strings of the most repeated genre among all the lists
+    """
     genre_list = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
     guess = []
     for neighbors in [neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco]:
@@ -223,6 +302,18 @@ def nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco
 
 
 def get_accuracy(test_genre, predictions):
+    """
+    Function that decides one or more genre for an specific test cased based on the nearest neighbors in each feature
+    
+    Args:
+        test_genre: list of right genres of each test case 
+        predictions: list of lists, for each test case it has the genre our KNN model assigned to it
+        
+    Returns:
+        accuracy percentage
+        number of correct cases
+        total of test cases
+    """
     correct = 0 
     for x in range (len(test_genre)):
         if list_to_genre(test_genre[x]) in predictions[x]:
@@ -231,6 +322,10 @@ def get_accuracy(test_genre, predictions):
 
 
 def generate_data():
+    """
+    Function that reassings all of the train and test cases using above functions
+    
+    """
     genre_list = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
     directory = "Data/genres_original/"
     split=0.7
@@ -238,14 +333,39 @@ def generate_data():
     
     
 def test_accurracy():
-    train_data, train_genre, test_data, test_genre = load_deserialize_data()
+    """
+    Function that trains the model and uses the test cases to calculate the accuracy using above functions
     
+    """
+    train_data, train_genre, test_data, test_genre = load_deserialize_data()
+    k=4
     predictions=[]
     for i in range(len(test_data)):
-        neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco=get_neighbors(train_data, train_genre, test_data[i], 4)
+        neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco=get_neighbors(train_data, train_genre, test_data[i], k)
         guess_genre=nearest_class(neighbors_mfcc, neighbors_sce, neighbors_chroma, neighbors_sco, train_genre)
         predictions.append(guess_genre)
-    print(get_accuracy(test_genre, predictions))
+    ac=get_accuracy(test_genre, predictions)
+    print("The accuracy using k="+str(k)+" is "+str(ac[0]))
     
 
-test_accurracy()
+def main():
+    """
+    Function that allows the user to choose between processing data or testing accuracy
+    
+    """
+    print("""----Music genre clasifier KNN---- 
+What do you want to do?
+1: Process data in GTZAN (This may take some time)
+2: Train the model and test accuracy
+    """)
+    
+    n = int(input("Your choice:"))
+    
+    if n == 1:
+        generate_data()
+    elif n == 2:
+        test_accurracy()
+        
+            
+if __name__ == "__main__":
+	main()
