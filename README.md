@@ -4,11 +4,13 @@ The goal of this project is to build machine learning models that process audio 
 
 Different types of machine learning algorithms and solutions are capable of solving this problem, from simple and supervised machine learning algorithms that can be used to solve classification and regression problems such as KNN, to convolutional neural networks (CNN). For this particular project, we focused on building a CNN and KNN that can accurately predict the genre of different audio files.
 
-## Slides and Report
+## Slides, Report and video
 
 - [Slides](https://github.com/vanelozano7312/MusicGenreClasifier/blob/main/Music%20classifier%20by%20genres%20using%20CNN%20and%20KNN%20models%20Slides.pdf)
 
 - [Report](https://github.com/vanelozano7312/MusicGenreClasifier/blob/main/ProyectoFinal.pdf)
+
+- [Video](https://youtu.be/V0mP8Ccc2IQ)
 
 ## How to use it
 ### KNN
